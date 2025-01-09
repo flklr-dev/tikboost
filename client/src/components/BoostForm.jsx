@@ -14,7 +14,11 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL;
+  // Create axios instance with the Render URL
+  const api = axios.create({
+    baseURL: 'https://tikboost.onrender.com',
+    timeout: 10000,
+  });
 
   useEffect(() => {
     if (cooldown > 0) {
@@ -46,8 +50,10 @@ const BoostForm = () => {
     }
 
     try {
-      console.log('Making request to:', API_URL);
-      const response = await axios.post(`${API_URL}/api/boost`, {
+      // Log the request URL for debugging
+      console.log('Sending request to:', 'https://tikboost.onrender.com/api/boost');
+      
+      const response = await api.post('/api/boost', {
         videoUrl
       });
 
@@ -73,7 +79,7 @@ const BoostForm = () => {
     setShowAd(false);
     
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/boost`, {
+      const response = await api.post('/api/boost', {
         videoUrl
       });
 
