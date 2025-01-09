@@ -93,16 +93,27 @@ const boostViews = async (req, res) => {
       });
     }
 
-    // Check if video was boosted recently
+    // Check if video was boosted recently (with IP check)
+    const clientIP = req.ip || req.headers['x-forwarded-for'];
     const recentBoost = await Boost.findOne({
-      videoUrl,
-      timestamp: { $gt: new Date(Date.now() - 3 * 60 * 1000) } // 3 minutes
+      $or: [
+        {
+          videoUrl,
+          timestamp: { $gt: new Date(Date.now() - 3 * 60 * 1000) } // 3 minutes
+        },
+        {
+          clientIP,
+          timestamp: { $gt: new Date(Date.now() - 1 * 60 * 1000) } // 1 minute per IP
+        }
+      ]
     });
 
     if (recentBoost) {
+      const timeLeft = Math.ceil((recentBoost.timestamp.getTime() + 3 * 60 * 1000 - Date.now()) / 1000);
       return res.status(429).json({
         success: false,
-        message: 'Please wait 3 minutes between boosts'
+        message: `Please wait ${timeLeft} seconds before boosting again`,
+        timeLeft
       });
     }
 
@@ -113,6 +124,7 @@ const boostViews = async (req, res) => {
     const boost = new Boost({
       videoUrl,
       videoId,
+      clientIP,
       viewsAdded: boostSuccess ? 1000 : 0,
       success: boostSuccess
     });
@@ -132,7 +144,8 @@ const boostViews = async (req, res) => {
       data: {
         videoUrl,
         videoId,
-        viewsAdded: 1000
+        viewsAdded: 1000,
+        nextBoostAvailable: new Date(Date.now() + 3 * 60 * 1000)
       }
     });
 

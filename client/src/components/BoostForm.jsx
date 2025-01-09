@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import Timer from './Timer';
 import InterstitialAd from './InterstitialAd';
@@ -11,6 +11,17 @@ const BoostForm = () => {
   const [showAd, setShowAd] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [error, setError] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setInterval(() => {
+        setCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldown]);
 
   const validateTikTokUrl = (url) => {
     return url.includes('tiktok.com');
@@ -19,6 +30,8 @@ const BoostForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
+    setIsLoading(true);
 
     if (!isVerified) {
       setError('Please complete the reCAPTCHA verification');
@@ -30,15 +43,24 @@ const BoostForm = () => {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
-      // Show ad before boosting
-      setShowAd(true);
-      
-      // The actual API call will happen after the ad is closed
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/boost`, {
+        videoUrl
+      });
+
+      if (response.data.success) {
+        setSuccess(true);
+        setVideoUrl('');
+        setCooldown(180);
+      }
     } catch (error) {
-      setError('An error occurred. Please try again.');
+      if (error.response?.status === 429) {
+        setError(error.response.data.message);
+        setCooldown(error.response.data.timeLeft || 180);
+      } else {
+        setError(error.response?.data?.message || 'Failed to boost views. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -101,19 +123,31 @@ const BoostForm = () => {
           />
         </div>
 
-        {error && (
-          <div className="text-red-500 text-sm text-center">
-            {error}
+        {cooldown > 0 && (
+          <div className="text-center text-gray-600 mt-4">
+            Next boost available in: {Math.floor(cooldown / 60)}:{(cooldown % 60).toString().padStart(2, '0')}
           </div>
         )}
 
         <button
           type="submit"
-          disabled={isLoading || !videoUrl}
+          disabled={isLoading || !videoUrl || cooldown > 0}
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
-          {isLoading ? 'Processing...' : 'Boost Views (1000)'}
+          {isLoading ? 'Processing...' : cooldown > 0 ? 'Please Wait' : 'Boost Views (1000)'}
         </button>
+
+        {error && (
+          <div className="text-red-500 text-sm text-center mt-4">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="text-green-500 text-sm text-center mt-4">
+            Views boost initiated successfully!
+          </div>
+        )}
       </form>
     </div>
   );
