@@ -2,10 +2,16 @@ import { useEffect } from 'react';
 
 const InterstitialAd = ({ onClose }) => {
   useEffect(() => {
-    // Simulate ad display time
+    try {
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (error) {
+      console.error('AdSense error:', error);
+    }
+
+    // Auto close after ad display
     const timer = setTimeout(() => {
       onClose();
-    }, 5000); // 5 seconds
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [onClose]);
@@ -13,16 +19,13 @@ const InterstitialAd = ({ onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-4">Advertisement</h3>
-          {/* Replace this with your actual ad code */}
-          <div className="bg-gray-200 h-[300px] flex items-center justify-center">
-            <span className="text-gray-500">Ad Content</span>
-          </div>
-          <p className="mt-4 text-sm text-gray-600">
-            Your views will be processed after the ad...
-          </p>
-        </div>
+        <ins className="adsbygoogle"
+             style={{ display: 'block' }}
+             data-ad-client="ca-pub-4442939390084208"
+             data-ad-slot="8550348986"
+             data-ad-format="auto"
+             data-full-width-responsive="true">
+        </ins>
       </div>
     </div>
   );

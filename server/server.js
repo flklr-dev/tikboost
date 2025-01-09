@@ -5,16 +5,26 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
-}));
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'https://tikboost-flezii6pl-flklr-devs-projects.vercel.app',
+    'http://localhost:5173' // Keep local development working
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Test route
-app.get('/test', (req, res) => {
-  res.json({ message: 'Server is running!' });
+// Routes
+app.use('/api/boost', require('./routes/boostRoutes'));
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
 });
 
 const PORT = process.env.PORT || 5000;
