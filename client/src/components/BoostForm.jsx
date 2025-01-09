@@ -14,6 +14,8 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setInterval(() => {
@@ -44,7 +46,8 @@ const BoostForm = () => {
     }
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/boost`, {
+      console.log('Making request to:', API_URL);
+      const response = await axios.post(`${API_URL}/api/boost`, {
         videoUrl
       });
 
@@ -54,6 +57,7 @@ const BoostForm = () => {
         setCooldown(180);
       }
     } catch (error) {
+      console.error('Error details:', error);
       if (error.response?.status === 429) {
         setError(error.response.data.message);
         setCooldown(error.response.data.timeLeft || 180);
