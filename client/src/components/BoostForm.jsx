@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { useState } from 'react';
 
 const BoostForm = () => {
@@ -14,11 +13,8 @@ const BoostForm = () => {
     setSuccess(false);
     setIsLoading(true);
 
-    const API_URL = import.meta.env.VITE_API_URL;
-    console.log('Using API URL:', API_URL); // Debug log
-
     try {
-      const response = await fetch(`${API_URL}/api/boost`, {
+      const response = await fetch('https://tikboost.onrender.com/api/boost', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,6 +23,7 @@ const BoostForm = () => {
       });
 
       const data = await response.json();
+      console.log('Server response:', data); // Debug log
 
       if (data.success) {
         setSuccess(true);
@@ -36,7 +33,7 @@ const BoostForm = () => {
         setError(data.message || 'Failed to boost views');
       }
     } catch (error) {
-      console.error('Error details:', error);
+      console.error('Error:', error);
       setError('Failed to connect to server. Please try again.');
     } finally {
       setIsLoading(false);
