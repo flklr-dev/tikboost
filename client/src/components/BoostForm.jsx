@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const BoostForm = () => {
   const [videoUrl, setVideoUrl] = useState('');
@@ -8,11 +8,8 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  // Create axios instance with the Render URL
-  const api = axios.create({
-    baseURL: 'https://tikboost.onrender.com',
-    timeout: 10000,
-  });
+  // Get API URL from environment variable
+  const API_URL = import.meta.env.VITE_API_URL || 'https://tikboost.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,11 +18,16 @@ const BoostForm = () => {
     setIsLoading(true);
 
     try {
-      // Log the request URL for debugging
-      console.log('Sending request to:', 'https://tikboost.onrender.com/api/boost');
-      
-      const response = await api.post('/api/boost', {
-        videoUrl
+      console.log('Making request to:', `${API_URL}/api/boost`); // Debug log
+
+      const response = await axios({
+        method: 'POST',
+        url: `${API_URL}/api/boost`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        data: { videoUrl }
       });
 
       if (response.data.success) {
@@ -34,7 +36,7 @@ const BoostForm = () => {
         setCooldown(180);
       }
     } catch (error) {
-      console.error('Error details:', error);
+      console.error('Error details:', error.response || error);
       if (error.response?.status === 429) {
         setError(error.response.data.message);
         setCooldown(error.response.data.timeLeft || 180);
