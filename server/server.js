@@ -8,12 +8,13 @@ const app = express();
 // CORS configuration
 const corsOptions = {
   origin: [
+    'https://tikboost.vercel.app',
     'https://tikboost-flezii6pl-flklr-devs-projects.vercel.app',
     'http://localhost:5173'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Origin', 'Authorization']
 };
 
 app.use(cors(corsOptions));

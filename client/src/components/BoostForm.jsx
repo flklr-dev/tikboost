@@ -1,7 +1,5 @@
+import { useState } from 'react';
 import axios from 'axios';
-import { useState, useEffect } from 'react';
-
-const API_URL = 'https://tikboost.onrender.com';
 
 const BoostForm = () => {
   const [videoUrl, setVideoUrl] = useState('');
@@ -10,15 +8,6 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  // Create axios instance with explicit base URL
-  const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
-  });
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -26,29 +15,30 @@ const BoostForm = () => {
     setIsLoading(true);
 
     try {
-      // Log the full URL being used
-      console.log('Making request to:', `${API_URL}/api/boost`);
-      
-      const response = await fetch(`${API_URL}/api/boost`, {
+      const response = await axios({
         method: 'POST',
+        url: 'https://tikboost.onrender.com/api/boost',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Origin': window.location.origin
         },
-        body: JSON.stringify({ videoUrl })
+        data: { videoUrl }
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         setSuccess(true);
         setVideoUrl('');
         setCooldown(180);
       } else {
-        setError(data.message || 'Failed to boost views');
+        setError(response.data.message || 'Failed to boost views');
       }
     } catch (error) {
-      console.error('Error details:', error);
-      setError('Failed to connect to server. Please try again.');
+      console.error('Error details:', error.response || error);
+      setError(error.response?.data?.message || 'Failed to connect to server. Please try again.');
+      if (error.response?.status === 429) {
+        setCooldown(error.response.data.timeLeft || 180);
+      }
     } finally {
       setIsLoading(false);
     }
