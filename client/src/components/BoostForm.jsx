@@ -7,6 +7,11 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
+  // Determine API URL based on environment
+  const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000' 
+    : 'https://tikboost.onrender.com';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -14,7 +19,9 @@ const BoostForm = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/boost`, {
+      console.log('Making request to:', `${API_URL}/api/boost`); // Debug log
+
+      const response = await fetch(`${API_URL}/api/boost`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -23,7 +30,7 @@ const BoostForm = () => {
       });
 
       const data = await response.json();
-      console.log('Server response:', data); // Debug log
+      console.log('Server response:', data);
 
       if (data.success) {
         setSuccess(true);
