@@ -32,11 +32,19 @@ const boostViews = async (req, res) => {
     // Launch browser
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+        '--window-size=1920x1080'
+      ]
     });
 
     const page = await browser.newPage();
-    
+    await page.setViewport({ width: 1920, height: 1080 });
+
     // Set random user agent
     const userAgents = [
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/97.0.4692.71',
@@ -47,65 +55,73 @@ const boostViews = async (req, res) => {
     
     await page.setUserAgent(userAgents[Math.floor(Math.random() * userAgents.length)]);
     
-    // Visit vipto.de
-    await page.goto('https://vipto.de/', { waitUntil: 'networkidle0' });
-    
-    // Use delay function instead of waitForTimeout
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    await delay(2000);
+    try {
+      await page.goto('https://vipto.de/', { 
+        waitUntil: 'networkidle0',
+        timeout: 30000 
+      });
 
-    // Click Views button using different selector
-    await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button'));
-      const viewsButton = buttons.find(button => button.textContent.includes('Views'));
-      if (viewsButton) viewsButton.click();
-    });
-    await delay(1000);
+      const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+      
+      // Click Views button using evaluate
+      await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const viewsButton = buttons.find(button => button.textContent.includes('Views'));
+        if (viewsButton) viewsButton.click();
+      });
+      await delay(2000);
 
-    // Input video URL
-    await page.type('input[type="text"]', videoUrl);
-    await delay(1000);
+      // Input video URL
+      await page.type('input[type="text"]', videoUrl);
+      await delay(1000);
 
-    // Click Search button
-    await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button'));
-      const searchButton = buttons.find(button => button.textContent.includes('Search'));
-      if (searchButton) searchButton.click();
-    });
-    await delay(2000);
+      // Click Search button
+      await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const searchButton = buttons.find(button => button.textContent.includes('Search'));
+        if (searchButton) searchButton.click();
+      });
+      await delay(2000);
 
-    // Click Send Views button
-    await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button'));
-      const sendButton = buttons.find(button => button.textContent.includes('Send Views'));
-      if (sendButton) sendButton.click();
-    });
-    await delay(1000);
+      // Click Send Views button
+      await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const sendButton = buttons.find(button => button.textContent.includes('Send Views'));
+        if (sendButton) sendButton.click();
+      });
+      await delay(1000);
 
-    // Save boost record
-    const boost = new Boost({
-      videoUrl,
-      videoId,
-      viewsAdded: 1000,
-      success: true
-    });
-
-    await boost.save();
-    console.log('Boost record saved:', boost);
-
-    if (browser) {
-      await browser.close();
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Views boost initiated successfully',
-      data: {
+      // Save boost record
+      const boost = new Boost({
         videoUrl,
         videoId,
-        viewsAdded: 1000
+        viewsAdded: 1000,
+        success: true,
+        clientIP: req.ip || '0.0.0.0' // Added default IP
+      });
+
+      await boost.save();
+      console.log('Boost record saved:', boost);
+
+      if (browser) {
+        await browser.close();
       }
-    });
+
+      res.status(200).json({
+        success: true,
+        message: 'Views boost initiated successfully',
+        data: {
+          videoUrl,
+          videoId,
+          viewsAdded: 1000
+        }
+      });
+
+    } catch (pageError) {
+      console.error('Page interaction error:', pageError);
+      if (browser) await browser.close();
+      throw new Error('Failed to interact with boost service');
+    }
 
   } catch (error) {
     console.error('Boost error:', error);

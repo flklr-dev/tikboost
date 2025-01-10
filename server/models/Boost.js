@@ -9,21 +9,21 @@ const boostSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  clientIP: {
-    type: String,
-    required: true
-  },
   viewsAdded: {
     type: Number,
-    default: 0
+    required: true
+  },
+  success: {
+    type: Boolean,
+    default: false
+  },
+  clientIP: {
+    type: String,
+    required: false
   },
   timestamp: {
     type: Date,
     default: Date.now
-  },
-  success: {
-    type: Boolean,
-    default: true
   }
 });
 
