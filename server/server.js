@@ -8,13 +8,14 @@ const app = express();
 // CORS configuration
 const corsOptions = {
   origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
     'https://tikboost.vercel.app',
-    'https://tikboost-flezii6pl-flklr-devs-projects.vercel.app',
-    'http://localhost:5173'
+    'https://tikboost-flezii6pl-flklr-devs-projects.vercel.app'
   ],
-  credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept', 'Origin', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
 app.use(cors(corsOptions));
@@ -30,26 +31,17 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Updated Mongoose connection
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
     console.log('Connected to MongoDB');
-  } catch (err) {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
     console.error('MongoDB connection error:', err);
     process.exit(1);
-  }
-};
-
-// Connect to MongoDB then start server
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
   });
-});
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {

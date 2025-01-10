@@ -7,7 +7,6 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  // Determine API URL based on environment
   const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000' 
     : 'https://tikboost.onrender.com';
@@ -25,9 +24,15 @@ const BoostForm = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ videoUrl })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
       console.log('Server response:', data);
@@ -36,15 +41,28 @@ const BoostForm = () => {
         setSuccess(true);
         setVideoUrl('');
         setCooldown(180);
+        startCooldownTimer();
       } else {
         setError(data.message || 'Failed to boost views');
       }
     } catch (error) {
-      console.error('Error:', error);
-      setError('Failed to connect to server. Please try again.');
+      console.error('Error details:', error);
+      setError(error.message || 'Failed to connect to server. Please try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const startCooldownTimer = () => {
+    const timer = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   return (
