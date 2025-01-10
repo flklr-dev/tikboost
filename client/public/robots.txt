@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://tikboost.vercel.app/sitemap.xml 
