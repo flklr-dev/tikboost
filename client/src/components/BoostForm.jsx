@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 
-const API_URL = 'https://tikboost.onrender.com';
-
 const BoostForm = () => {
   const [videoUrl, setVideoUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -10,13 +8,10 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  // Create axios instance with explicit base URL
+  // Create axios instance with the Render URL
   const api = axios.create({
-    baseURL: API_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
+    baseURL: 'https://tikboost.onrender.com',
+    timeout: 10000,
   });
 
   const handleSubmit = async (e) => {
@@ -26,29 +21,26 @@ const BoostForm = () => {
     setIsLoading(true);
 
     try {
-      // Log the full URL being used
-      console.log('Making request to:', `${API_URL}/api/boost`);
+      // Log the request URL for debugging
+      console.log('Sending request to:', 'https://tikboost.onrender.com/api/boost');
       
-      const response = await fetch(`${API_URL}/api/boost`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ videoUrl })
+      const response = await api.post('/api/boost', {
+        videoUrl
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         setSuccess(true);
         setVideoUrl('');
         setCooldown(180);
-      } else {
-        setError(data.message || 'Failed to boost views');
       }
     } catch (error) {
       console.error('Error details:', error);
-      setError('Failed to connect to server. Please try again.');
+      if (error.response?.status === 429) {
+        setError(error.response.data.message);
+        setCooldown(error.response.data.timeLeft || 180);
+      } else {
+        setError(error.response?.data?.message || 'Failed to boost views. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
