@@ -8,41 +8,36 @@ const BoostForm = () => {
   const [cooldown, setCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  // Get API URL from environment variable
-  const API_URL = import.meta.env.VITE_API_URL || 'https://tikboost.onrender.com';
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
     setIsLoading(true);
 
-    try {
-      console.log('Making request to:', `${API_URL}/api/boost`); // Debug log
+    const API_URL = import.meta.env.VITE_API_URL;
+    console.log('Using API URL:', API_URL); // Debug log
 
-      const response = await axios({
+    try {
+      const response = await fetch(`${API_URL}/api/boost`, {
         method: 'POST',
-        url: `${API_URL}/api/boost`,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
-        data: { videoUrl }
+        body: JSON.stringify({ videoUrl })
       });
 
-      if (response.data.success) {
+      const data = await response.json();
+
+      if (data.success) {
         setSuccess(true);
         setVideoUrl('');
         setCooldown(180);
+      } else {
+        setError(data.message || 'Failed to boost views');
       }
     } catch (error) {
-      console.error('Error details:', error.response || error);
-      if (error.response?.status === 429) {
-        setError(error.response.data.message);
-        setCooldown(error.response.data.timeLeft || 180);
-      } else {
-        setError(error.response?.data?.message || 'Failed to boost views. Please try again.');
-      }
+      console.error('Error details:', error);
+      setError('Failed to connect to server. Please try again.');
     } finally {
       setIsLoading(false);
     }
