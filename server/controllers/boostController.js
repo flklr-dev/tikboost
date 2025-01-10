@@ -24,17 +24,8 @@ const boostRealViews = async (videoId) => {
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15'
     ];
 
-    // Different proxy servers (you should replace these with real proxy IPs)
-    const proxies = [
-      'http://proxy1.example.com',
-      'http://proxy2.example.com',
-      'http://proxy3.example.com',
-      // Add more proxies here
-    ];
-
     for (let i = 0; i < numberOfRequests; i++) {
       const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-      const randomProxy = proxies[Math.floor(Math.random() * proxies.length)];
 
       requests.push(
         axios.get(`https://www.tiktok.com/video/${videoId}`, {
@@ -48,10 +39,6 @@ const boostRealViews = async (videoId) => {
             'Pragma': 'no-cache',
             'Referer': 'https://www.google.com/'
           },
-          proxy: {
-            host: randomProxy,
-            port: 8080
-          },
           timeout: 10000,
           validateStatus: false // Don't throw on error status codes
         })
@@ -61,11 +48,13 @@ const boostRealViews = async (videoId) => {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Execute requests in parallel with error handling
+    // Execute requests in parallel
     const results = await Promise.allSettled(requests);
-    const successfulRequests = results.filter(r => r.status === 'fulfilled').length;
+    
+    // Check if at least some requests were successful
+    const successfulRequests = results.filter(result => result.status === 'fulfilled');
+    return successfulRequests.length > 0;
 
-    return successfulRequests > numberOfRequests / 2; // Consider success if more than half requests succeed
   } catch (error) {
     console.error('View boost error:', error);
     return false;
@@ -76,7 +65,6 @@ const boostViews = async (req, res) => {
   try {
     const { videoUrl } = req.body;
 
-    // Validate video URL
     if (!videoUrl || !videoUrl.includes('tiktok.com')) {
       return res.status(400).json({ 
         success: false, 
@@ -84,36 +72,11 @@ const boostViews = async (req, res) => {
       });
     }
 
-    // Extract video ID
     const videoId = extractVideoId(videoUrl);
     if (!videoId) {
       return res.status(400).json({
         success: false,
         message: 'Could not extract video ID from URL'
-      });
-    }
-
-    // Check if video was boosted recently (with IP check)
-    const clientIP = req.ip || req.headers['x-forwarded-for'];
-    const recentBoost = await Boost.findOne({
-      $or: [
-        {
-          videoUrl,
-          timestamp: { $gt: new Date(Date.now() - 3 * 60 * 1000) } // 3 minutes
-        },
-        {
-          clientIP,
-          timestamp: { $gt: new Date(Date.now() - 1 * 60 * 1000) } // 1 minute per IP
-        }
-      ]
-    });
-
-    if (recentBoost) {
-      const timeLeft = Math.ceil((recentBoost.timestamp.getTime() + 3 * 60 * 1000 - Date.now()) / 1000);
-      return res.status(429).json({
-        success: false,
-        message: `Please wait ${timeLeft} seconds before boosting again`,
-        timeLeft
       });
     }
 
@@ -124,7 +87,6 @@ const boostViews = async (req, res) => {
     const boost = new Boost({
       videoUrl,
       videoId,
-      clientIP,
       viewsAdded: boostSuccess ? 1000 : 0,
       success: boostSuccess
     });
@@ -144,8 +106,7 @@ const boostViews = async (req, res) => {
       data: {
         videoUrl,
         videoId,
-        viewsAdded: 1000,
-        nextBoostAvailable: new Date(Date.now() + 3 * 60 * 1000)
+        viewsAdded: 1000
       }
     });
 
