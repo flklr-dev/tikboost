@@ -56,40 +56,52 @@ const boostViews = async (req, res) => {
     await page.setUserAgent(userAgents[Math.floor(Math.random() * userAgents.length)]);
     
     try {
-      await page.goto('https://vipto.de/', { 
+      // Try zefoy.com first
+      await page.goto('https://zefoy.com/', { 
         waitUntil: 'networkidle0',
         timeout: 30000 
       });
 
       const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-      
-      // Click Views button using evaluate
-      await page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const viewsButton = buttons.find(button => button.textContent.includes('Views'));
-        if (viewsButton) viewsButton.click();
-      });
+
+      // Wait for the page to load and bypass any captcha
+      await page.waitForSelector('input[type="text"]', { timeout: 5000 });
       await delay(2000);
 
       // Input video URL
       await page.type('input[type="text"]', videoUrl);
       await delay(1000);
 
-      // Click Search button
-      await page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const searchButton = buttons.find(button => button.textContent.includes('Search'));
-        if (searchButton) searchButton.click();
-      });
+      // Click the views button (usually the first or second option)
+      const viewsButton = await page.$$('button');
+      if (viewsButton.length > 1) {
+        await viewsButton[1].click();
+      }
       await delay(2000);
 
-      // Click Send Views button
-      await page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const sendButton = buttons.find(button => button.textContent.includes('Send Views'));
-        if (sendButton) sendButton.click();
+      // Click submit/search button
+      const submitButton = await page.$$('button[type="submit"]');
+      if (submitButton.length > 0) {
+        await submitButton[0].click();
+      }
+      await delay(5000);
+
+      // Verify if views are being added
+      const confirmationText = await page.evaluate(() => {
+        const elements = document.querySelectorAll('div');
+        for (const element of elements) {
+          if (element.textContent.includes('Views sent') || 
+              element.textContent.includes('Success') ||
+              element.textContent.includes('Processing')) {
+            return element.textContent;
+          }
+        }
+        return null;
       });
-      await delay(1000);
+
+      if (!confirmationText) {
+        throw new Error('Could not confirm views were added');
+      }
 
       // Save boost record
       const boost = new Boost({
@@ -97,7 +109,7 @@ const boostViews = async (req, res) => {
         videoId,
         viewsAdded: 1000,
         success: true,
-        clientIP: req.ip || '0.0.0.0' // Added default IP
+        clientIP: req.ip || '0.0.0.0'
       });
 
       await boost.save();
@@ -113,14 +125,99 @@ const boostViews = async (req, res) => {
         data: {
           videoUrl,
           videoId,
-          viewsAdded: 1000
+          viewsAdded: 1000,
+          confirmation: confirmationText
         }
       });
 
     } catch (pageError) {
       console.error('Page interaction error:', pageError);
-      if (browser) await browser.close();
-      throw new Error('Failed to interact with boost service');
+      
+      // If zefoy fails, try vipto as fallback
+      try {
+        await page.goto('https://vipto.de/', { 
+          waitUntil: 'networkidle0',
+          timeout: 30000 
+        });
+
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        
+        // Click Views button using evaluate
+        await page.evaluate(() => {
+          const buttons = Array.from(document.querySelectorAll('button'));
+          const viewsButton = buttons.find(button => button.textContent.includes('Views'));
+          if (viewsButton) viewsButton.click();
+        });
+        await delay(2000);
+
+        // Input video URL
+        await page.type('input[type="text"]', videoUrl);
+        await delay(1000);
+
+        // Click Search button
+        await page.evaluate(() => {
+          const buttons = Array.from(document.querySelectorAll('button'));
+          const searchButton = buttons.find(button => button.textContent.includes('Search'));
+          if (searchButton) searchButton.click();
+        });
+        await delay(2000);
+
+        // Click Send Views button
+        await page.evaluate(() => {
+          const buttons = Array.from(document.querySelectorAll('button'));
+          const sendButton = buttons.find(button => button.textContent.includes('Send Views'));
+          if (sendButton) sendButton.click();
+        });
+        await delay(1000);
+
+        // Verify if views are being added
+        const confirmationText = await page.evaluate(() => {
+          const elements = document.querySelectorAll('div');
+          for (const element of elements) {
+            if (element.textContent.includes('Views sent') || 
+                element.textContent.includes('Success') ||
+                element.textContent.includes('Processing')) {
+              return element.textContent;
+            }
+          }
+          return null;
+        });
+
+        if (!confirmationText) {
+          throw new Error('Could not confirm views were added');
+        }
+
+        // Save boost record
+        const boost = new Boost({
+          videoUrl,
+          videoId,
+          viewsAdded: 1000,
+          success: true,
+          clientIP: req.ip || '0.0.0.0'
+        });
+
+        await boost.save();
+        console.log('Boost record saved:', boost);
+
+        if (browser) {
+          await browser.close();
+        }
+
+        res.status(200).json({
+          success: true,
+          message: 'Views boost initiated successfully',
+          data: {
+            videoUrl,
+            videoId,
+            viewsAdded: 1000,
+            confirmation: confirmationText
+          }
+        });
+
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
+        throw new Error('Failed to boost views using both services');
+      }
     }
 
   } catch (error) {
