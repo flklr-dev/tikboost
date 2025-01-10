@@ -14,7 +14,7 @@ const BoostForm = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://tikboost.onrender.com/api/boost', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/boost`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
