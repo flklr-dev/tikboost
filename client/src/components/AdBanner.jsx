@@ -3,8 +3,7 @@ import { useEffect } from 'react';
 const AdBanner = ({ position }) => {
   useEffect(() => {
     try {
-      // Wait for AdSense to be ready
-      if (window.adsbygoogle && process.env.NODE_ENV === 'production') {
+      if (window.adsbygoogle) {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
       }
     } catch (error) {
@@ -12,20 +11,15 @@ const AdBanner = ({ position }) => {
     }
   }, []);
 
-  // Don't render ads in development
-  if (process.env.NODE_ENV !== 'production') {
-    return null;
-  }
-
   return (
-    <div className={`w-full ${position === 'top' ? 'mb-4' : 'mt-4'} min-h-[100px] overflow-hidden`}>
+    <div className={`w-full ${position === 'top' ? 'mb-4' : 'mt-4'} min-h-[100px]`}>
       <ins 
         className="adsbygoogle"
-        style={{ display: 'block', textAlign: 'center' }}
-        data-ad-layout="in-article"
-        data-ad-format="fluid"
+        style={{ display: 'block' }}
         data-ad-client="ca-pub-4442939390084208"
         data-ad-slot="8550348986"
+        data-ad-format="auto"
+        data-full-width-responsive="true"
       />
     </div>
   );
